@@ -1,0 +1,23 @@
+\chapter{SAT}
+
+First, we need to precisely define basic concepts we will use thorough this text.
+
+\section{The SAT problem}
+This is a famous NP-complete problem of deciding whether there exist an interpretation satisfying a given formula of propositional logic. An interpretation here is a function assigning either T (True) or F (False) to each propositional variable in the formula. We say that an interpretation $I$ satisfies a formula $\phi$ if, the evaluation of the formula, where we replace all variables with truth values according to $I$, results in T.
+
+However, since we want to make all arguments as simple as possible, we put restrictions on what a formula can look like. We know that every propositional formula can be converted into an equivalent formula that is in conjunctive normal form (CNF). In this transformation, one can view a given formula as conjunction of clauses, which are in turn disjunctions of literals. Now, we can finally define what our instance of the problem looks like, without loss of generality.
+
+INSTANCE: a finite set of clauses $S$
+
+\section{The 3-SAT problem}
+The instance can be further restricted to only use clauses of a given cardinality. In the 3-SAT problem we only allow clauses of cardinality equal to 3 (3-clauses).
+
+However, we need to discuss the effect on the generality of the problem. We prove that the 3-SAT problem is as general as the SAT problem by transforming an instance of SAT into an instance of 3-SAT.
+
+The instance of SAT is a finite set of clauses $S$. If there is a clause $C_1$, such that $|C_1| = n_1 > 3$, we transform it into $n_1-2$ new clauses. If there is a clause $C_2$, $|C_2| = n_2 < 3$, we pad this clause with new ``dummy" variables. The exact transformation manual is shown below.
+
+Clause $C_1 = \{l_1, l_2, \ldots, l_{n_1}\}$ is replaced by new clauses $\{l_1, l_2, x_1\}$, $\{\neg x_1, l_3, x_2\}$, $\{\neg x_2, l_4, x_3\}$, \ldots, $\{\neg x_{n-4},l_{n-2},x_{n-3}\}$, $\{\neg x_{n-3}, l_{n-1}, l_n\}$, where $x_i$ are new variables not occurring elsewhere.
+
+Clause $\{l_1\}$ is replaced by a new clause $\{l_1, y_1, y_2\}$, clause $\{l_1, l_2\}$ is likewise replaced by $\{l_1, l_2, y\}$, where $y, y_1, y_2$ are new variables not occurring elsewhere.
+
+The last step is to show that these transformations preserve satisfiability. Let $S$ be an instance of SAT and $S_3$ the corresponding instance of 3-SAT, obtained by these transformations. If 
