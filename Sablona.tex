@@ -34,10 +34,10 @@
 %% pri volbe ``\usepackage[english]{babel}'' nefunguji ceske uvozovky pomoci \uv{..} - staci nahradit ``..''
 %%%%%%%%%%%%
 
-\usepackage[czech]{babel}
+%\usepackage[czech]{babel}
 % \usepackage[slovak]{babel}
-% \usepackage[english]{babel}
-% \usepackage{czech}
+\usepackage[english]{babel}
+%\usepackage{czech}
 % \usepackage{slovak}
 
 %%%%%%%%%%%%
@@ -55,6 +55,7 @@
 % \usepackage{utopia}
 \usepackage{mathptmx}  %% volne dostupny font Adobe Times Roman
 %  \usepackage[mtbold,mtplusscr,mtpluscal]{mathtime} % komercni matematicky font, dostupne pouze na UMS
+\usepackage{algorithm2e}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,6 +69,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% BALIKY POTREBNE PRO MATEMATIKU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \usepackage{amsmath,amssymb,amsthm}
+\usepackage{chemformula}
+\usepackage{natbib}
+\usepackage{color}
+\bibliographystyle{agsm}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%% NASTAVENI POVINNYCH CASTI DLE SMERNICE DEKANA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -86,13 +91,13 @@
 
 \NazevUstavu{Název ústavu}{Department of ...}
 
-\RokOdevzdaniPrace{rok}
+\RokOdevzdaniPrace{2021}
 
-\AkademickyRok{rok/rok}
+\AkademickyRok{2021/2022}
 
-\Autor{Jméno Příjmení}{Plné jméno autora}
+\Autor{Roman Solař}{Roman Solař}
 
-\NazevPrace{Název práce na titulní list}{Název práce}{Title of Thesis}
+\NazevPrace{Stochastický přístup k řešení plazmové kinetiky}{Stochastický přístup k řešení plazmové kinetiky}{Stochastic approach to plasma kinetics}
 %% Pokud nazev prace obsahuje nejake matematicke formule, tak je kvuli velikosti fontu pouzit prikaz \scalebox a nazev
 %% zalamat rucne - toto plati pouze pro nazev prace na titulni list
 %% {Rozbor řešení rovnice \scalebox{1.15}{${y''=f(x)\,x^{\scalebox{0.4}2}}$} s~počátečními podmínkami
@@ -105,21 +110,19 @@
 %% viz take http://orgmode.org/worg/org-symbols.html
 %%
 
-\VedouciPraceSTituly{Plné jméno včetně titulů} %% Neni potreba pro rigorozni prace
+\VedouciPraceSTituly{Mgr. Zdeněk Bonaventura, Ph.D.} %% Neni potreba pro rigorozni prace
 
-\StudijniProgram{Studijní program}{Degree programme}
+\StudijniProgram{Fyzika}{Physics}
 
-\StudijniObor{Studijní obor}{Field of Study}
+\StudijniObor{Fyzika}{Physics}
 
 \PocetStran{??\,$+$\,??}
 
-\KlicovaSlova{Klíčové slovo; Klíčové slovo; Klíčové slovo; Klíčové slovo; Klíčové slovo; Klíčové slovo;
-Klíčové slovo; Klíčové slovo}{Keyword; Keyword; Keyword; Keyword; Keyword; Keyword; Keyword;
-Keyword; Keyword}
+\KlicovaSlova{Monte Carlo, equilibrium, plazma, stochastická simulace }{Monte Carlo, equilibrium, plasma, stochastic simulation}
 
 \Abstrakty%
-{V této bakalářské/diplomové/rigorózní práci se věnujeme ...}%
-{In this thesis we study ...}
+{V této bakalářské práci se zabýváme stochastickou metodou pro simulaci koncentrace částic v plazmatu. Zjištujeme, jaké jsou její teoretické hranice a jak se vypořádat zejména s řádově rozdílnými počatečními koncentracemi. Výsledky simulací ověřujeme s pomocí numerických výpočtů příslušných diferenciálních rovnic. Potřebné reakční rychlosti získáváme z databází experimentálně naměřených dat.}%
+{In this thesis, we explore the stochastic approach to particle concentration simulation in plasma. The main focus is put into investigating the theoretical limits of this method, especially when it comes to concentrations of very different orders of magnitude. The simulation outcomes are then compared to the results obtained from numerical solutions to the corresponding differential equations. The necessary reaction rates are taken from databases of experimentally obtained data.}
 
 \TextPodekovani%
 {Na tomto místě bych chtěl(-a) poděkovat ...}
@@ -128,7 +131,7 @@ Keyword; Keyword}
 {Prohlašuji, že jsem svoji bakalářskou/diplomovou/rigorózní práci vypracoval(-a) samostatně s~využitím informačních
 zdrojů, které jsou v práci citovány.}
 
-\DatumProhlaseni{xx. měsíce 20xx}
+\DatumProhlaseni{4. ledna 2021}
 
 %%%%%%%%%%%%
 %% Konkrétní příklad
@@ -184,6 +187,7 @@ zdrojů, které jsou v práci citovány.}
 \newcommand{\Zbb}{\mathbb{Z}}
 \newcommand{\Nbb}{\mathbb{N}}
 \DeclareMathOperator{\tg}{tg}
+\newcommand*\dif{\mathop{}\!\textnormal{\slshape d}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%% VYTVOR POMOCNY SOUBOR PRO REJSTRIK %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -258,10 +262,10 @@ zdrojů, které jsou v práci citovány.}
 %%%%%% PAK ''ZAPROCENTUJTE'' RADEK S \SemVlozitZadani A ODPROCENTUJTE RADEK S \VlozZadani %%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\SemVlozitZadani
+%\SemVlozitZadani
 
 % \VlozZadani{NazevSouboruSeZadanim}
-% \VlozZadani{zadani.pdf}
+\VlozZadani{zadani.pdf}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%% PODEKOVANI + PROHLASENI %%%%%%%%%%%%%%%
@@ -288,39 +292,26 @@ zdrojů, které jsou v práci citovány.}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TEXT PRACE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\HlavickaZnaceni
-\vloz{text_prace/01_Znaceni}
-\cleardoublepage
 
 \HlavickaUvod
 \setcounter{page}{1}
 \pagenumbering{arabic}
-\vloz{text_prace/02_Uvod}
+\vloz{text_prace/01_Uvod}
 \cleardoublepage
 
 \renewcommand{\chaptermark}[1]{\markboth{\thechapter. #1}{}}
 \renewcommand{\sectionmark}[1]{\markright{\thesection. #1}{}}
 \HlavickaKapitoly
-\vloz{text_prace/03_Kapitola_01}
+\vloz{text_prace/simple_mc}
 \cleardoublepage
 
-\vloz{text_prace/04_Kapitola_02}
+\vloz{text_prace/advanced_mc}
 \cleardoublepage
 
-\vloz{text_prace/kapitola.tex}
+\vloz{text_prace/2reaction}
 \cleardoublepage
 
-\HlavickaZaver
-\vloz{text_prace/05_Zaver}
-\cleardoublepage
-
-\HlavickaPriloha
-\vloz{text_prace/06_Priloha}
-\cleardoublepage
-
-\renewcommand{\bibname}{Seznam použité literatury}
-\HlavickaLiteratura
-\vloz{text_prace/07_Literatura}
+\vloz{text_prace/kapitola}
 \cleardoublepage
 
 \renewcommand{\indexname}{Rejstřík}
@@ -346,4 +337,5 @@ zdrojů, které jsou v práci citovány.}
 \newpage
 \mbox{}
 
+\bibliography{sources}
 \end{document}

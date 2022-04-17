@@ -1,0 +1,39 @@
+\chapter{Monte Carlo Improvement}
+
+In the previous chapter, we have introduced and explored the simple Monte Carlo algorithm. Now, we will discuss its limits and improvements as presented in the paper \cite{tiago20}. As a result, we will be able to extend the number of instances the stochastic approach is capable of simulating in practice. 
+
+\section{Introduction}
+
+Assume, we have a simple system consisting of only two species A, B and one reaction: \ch{A ->[ $k$ ] B}. With the initial concentrations $X_{\rm{A}} = 0$ and $X_{\rm{B}} = n$ for species A and B respectively, it would take $n$ iterations of the algorithm \ref{alg:mcsimple} to reach the equilibrium, where there are only $n$ particles of specie A and no possible reaction anymore. 
+
+Even though this particular model system may not be very interesting in practice, it nicely shows what is very ineffective in the simple algorithm. Because in each iteration only one reaction is executed, the simulation takes unnecessarily long time, although there is only one possible reaction. 
+
+We might encounter a similar problem in much more complicated systems, where for some period of time of the simulation (typically at the beginning) one reaction strongly dominates the others, and it is selected in (almost) all iterations. Therefore, it might make sense to execute each selected reaction multiple times in each iteration. Naturally, that means modifying the time step $\tau$ as well.
+
+We can take this idea one step further, if we allow to execute a non-integer amount of reactions in each iteration. In this text, I will use the word ``bulk'' to refer to this amount. 
+
+\section{Improved algorithm}
+
+There are very few differences in respect to the algorithm \ref{alg:mcsimple} presented in the previous chapter. However, it is still included here for clarity.
+
+\begin{algorithm}
+\caption{Improved Monte Carlo}\label{alg:mcadvanced}
+\KwData{$(X_i)_{i=1}^N$, $t_{\rm{end}}$, \textcolor{blue}{bulk $b$}}
+\KwResult{particle concentrations $(X_i)_{i=1}^N$ at discrete time steps up to $t_{\rm{end}}$}
+
+$t \gets 0$\\
+\While{$t < t_{\rm{end}}$}{
+    calculate transition rates $a_1, \ldots, a_M$ for all reactions \\
+
+    $R_\mu \gets $ uniformly sampled reaction, where each reaction $R_i$ weighted by $a_i$\\
+    update concentrations $X_i$ according to the reaction $R_\mu$ \textcolor{blue}{$b$ times}\\
+    
+    $a_0 \gets \sum_{\mu=1}^M a_\mu$ \\
+    $r \gets $ uniformly sampled from $\left( 0, 1 \right)$ \\
+    $\tau \gets \frac{1}{a_0} \ln{\frac{1}{r}}$ \\
+    $t \gets t + \tau\,\textcolor{blue}{b}$ \\
+}
+\end{algorithm}
+
+Naturally, the randomly chosen time step $\tau$ is multiplied by the parameter bulk $b$, representing the number of reactions executed at once each iteration. In case of non-integer bulk $b$, we do not need to modify anything. The only possibly unclear part is when updating the concentrations -- if reaction $R_\mu$ changes the concentration $X_i$ of a specie $S_i$ by $\Delta n_i$, we update it by $b\, \Delta n_i$, instead. This holds even when the reaction consumes particles of a specie, and $\Delta n_i$ is thus negative.
+

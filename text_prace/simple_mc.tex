@@ -1,0 +1,100 @@
+\chapter{Simple Monte Carlo}
+
+In this chapter, I will explain the basic concepts of the Monte Carlo method and its properties. The text is mostly based on the papers \cite{gillespie76}, \cite{gillespie77}, and \cite{tiago20}.
+
+\section{Introduction}
+
+Often, it can be useful to use stochastic computations in place of deterministic because of the complexity of the underlying differential equations. (TODO: do they model real world simulations which are random by their nature better? are they faster? can they also be slower? any practical examples?)
+
+\section{Definition}
+
+Suppose we have a system of $N$ species $(S_i)_{i=1}^N$, and we denote the current number of molecules of each chemical species $X_i$. Each of these species can undergo any of the $M$ chemical reactions $(R_\mu)_{\mu=1}^M$. There is a transition rate $a_\mu$ corresponding to each reaction. At last, we denote the sum of transition rates $a_0$: $a_0 = \sum_{\mu=1}^M a_\mu$, this corresponds to the the decay constant of the Poisson distribution.
+
+In this system, we can define the reaction probability density function $P(\tau, \mu)$, which is a joint probability density function on the variables $\tau$ and $\mu$. The continuous variable $\tau \in \left[ 0, \infty \right)$ expresses the time interval in which the next reaction occurs, and the the discrete variable $\mu \in \{ 1, 2, \ldots, M \}$ stands for a specific reaction.
+
+It can be proven \citep{gillespie76}, that such probability density function is of the following form
+
+\[
+P(\tau, \mu) = \left\{
+\begin{array}{ll}
+     a_\mu\exp{\left(-a_0\tau\right)} & \mathrm{if}\;\tau \in \left[0, \infty\right) \;\mathrm{and}\; \mu \in \{ 1, 2, \ldots, M \} \\
+     0 & \mathrm{otherwise}
+\end{array}
+\right. .
+\]
+
+%% This declares a command \Comment
+%% The argument will be surrounded by /* ... */
+\SetKwComment{Comment}{/* }{ */}
+% creates a nice algorithm header
+\RestyleAlgo{ruled}
+
+\section{Algorithm}
+
+We will start by illustrating the main idea in the algorithm. In the pseudocode \ref{alg:mcsimple}, several details have been omitted for the sake of simplicity and I will attempt to specify it further in this chapter. Namely, it must take more input data than explicitly stated -- all the reactions $(R_\mu)_{\mu=1}^M$, and sometimes even additional parameters -- such as current value of reduced electric field $E/N$ -- necessary for computing the transition rates $(a_\mu)_{\mu=1}^M$. Moreover, it does not explain how to compute the reaction rates and several other details. This will also be covered later in this chapter as promised.
+
+\begin{algorithm}
+\caption{Simple Monte Carlo}\label{alg:mcsimple}
+\KwData{initial particle concentrations $(X_i)_{i=1}^N$, simulation duration $t_{\rm{end}}$}
+\KwResult{particle concentrations $(X_i)_{i=1}^N$ at discrete time steps up to $t_{\rm{end}}$}
+
+$t \gets 0$\\
+\While{$t < t_{\rm{end}}$}{
+    calculate transition rates $a_1, \ldots, a_M$ for all reactions \\
+
+    $R_\mu \gets $ uniformly sampled reaction, where each reaction $R_i$ weighted by $a_i$\\
+    update concentrations $X_i$ according to the reaction $R_\mu$ \\
+    
+    $a_0 \gets \sum_{\mu=1}^M a_\mu$ \\
+    $r \gets $ uniformly sampled from $\left( 0, 1 \right)$ \\
+    $\tau \gets \frac{1}{a_0} \ln{\frac{1}{r}}$ \\
+    $t \gets t + \tau$ \\
+}
+\end{algorithm}
+
+Note that the algorithm makes two independent random choices -- \textit{what} and \textit{when}. Specifically, it makes the assumption that the time interval to the next reaction $\tau$ and the concrete reaction taking place next $R_\mu$ are independent.
+
+The transition rates $(a_\mu)_{\mu=1}^M$ need to be recomputed at each iteration, because they depend on the current particle concentrations $(X_i)_{i=1}^N$. The particle concentrations also change at each iteration due to executing the selected reaction $R_\mu$. As a result, we get the implicit output consisting of particle concentrations at discrete time steps (typically of varying length) up to the ending time of the simulation $t_{\rm{end}}$: $(X_{i, t})_{i, t}$. 
+
+\section{Transition rates}
+
+It is left to explain what the transition rates are and how to compute them. Consider the space of all possible reactions over given particle concentrations for the example reaction \ch{S_i + S_j ->[ $k$ ] anything}, for two distinct species $S_i, S_j, i \neq j$ with a reaction rate $k$. The products in the reaction do not matter. Then, the number of possible reactions in the space is $X_iX_j$, and in our computation, we will weigh the reaction rate $k$ by this number $c = X_iX_j$, producing the transition rate $a = ck = X_iX_jk$.
+
+Now, let us consider the reaction \ch{2 S_i ->[ $k$ ] anything}. The number of possible reactions here is $c = {X_i \choose 2} = \frac{X_i(X_i - 1)}{2}$. Thus, the transition rate $a$ corresponding to our model reaction is $ck = \frac{X_i(X_i - 1)}{2}k$.
+
+After this rather intuitive introduction, we will define the transition rates precisely. Given a reaction $R_\mu, 1 \leq \mu \leq M, $ of the general form 
+
+\begin{center}
+\begin{gather*}
+\ch{n_1 S_1 + n_2 S_2 + {\ldots} + n_r S_r ->[ $k_\mu$ ] anything}, 
+\end{gather*}
+\end{center}
+
+consisting of $r$ distinct reactant species (i.e. $S_i \neq S_j$ for $1 \leq i, j \leq r$, $i \neq j$). We denote the given reaction rate $k_\mu$.
+
+Then, the corresponding transition rate is computed as 
+
+$$
+a_\mu = \Pi_{i=1}^{r} \Pi_{j = 0}^{n_i - 1} \left( X_i - j \right) k_\mu.
+$$
+
+Naturally, if $X_i < n_i$ for any reactant specie $S_i$ (i.e. $1 \leq i \leq r$) in the reaction $R_\mu$, we set $a_\mu = 0$ instead, because the reaction cannot occur given the particle concentrations.
+
+
+\section{Reaction selection}
+
+If it has not been sufficiently clear from the context, here I provide the reader with detailed description of the random reaction selection, which takes place in each iteration of the algorithm \ref{alg:mcsimple}. 
+
+To take the transition rates into account, we select each reaction $R_\mu$ with probability $p_\mu = \frac{a_\mu}{a_0}$, where $a_0$ is the sum of all transition rates as specified in the algorithm. Therefore, we uniformly sample a number $r$ between 0 and 1, and based on it, we select reaction $R_\mu$ with transition rate $a_\mu$ satisfying the inequality 
+
+$$
+\sum_{j = 1}^{\mu - 1}\frac{a_\mu}{a_0} < r \leq \sum_{j = 1}^{\mu}\frac{a_\mu}{a_0}.
+$$ 
+
+For the Monte Carlo algorithm to run correctly, it is essential to select the random number for reaction selection and time advancement independently. 
+
+\section{Time-dependent parameters}
+
+variable reaction rate (depends on EN)
+
+changing EN, current, ...
