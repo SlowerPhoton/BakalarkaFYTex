@@ -1,32 +1,34 @@
-\chapter{Monte Carlo Improvement}
+\chapter{Monte Carlo optimizations}
 
-In the previous chapter, we have introduced and explored the simple Monte Carlo algorithm. Now, we will discuss its limits and improvements as presented in the paper \cite{tiago20}. As a result, we will be able to extend the number of instances the stochastic approach is capable of simulating in practice. 
+In the previous chapter, we have introduced and explored the simple Monte Carlo algorithm. Now, we will discuss its limits and modifications as presented in the paper by Dias and Guerra \cite{tiago20}. As a result, we will be able to extend the number of instances the stochastic approach is capable of simulating in practice while losing some precision.
+
+Please note that there are far more techniques to fasten the original algorithm, which we will not discuss as it is not in the scope of this thesis. To give one example, the constant-time kinetic Monte Carlo algorithm yields very good results in practice, as described by Slepoy et al. \cite{constant-time}. 
 
 \section{Introduction}
 
-Assume, we have a simple system consisting of only two species A, B and one reaction: \ch{A ->[ $k$ ] B}. With the initial concentrations $X_{\rm{A}} = 0$ and $X_{\rm{B}} = n$ for species A and B respectively, it would take $n$ iterations of the algorithm \ref{alg:mcsimple} to reach the equilibrium, where there are only $n$ particles of specie A and no possible reaction anymore. 
+Assume, we have a simple system consisting of only two species A, B and one reaction: \ch{A ->[ $k$ ] B}. With the initial species population $X_{\rm{A}} = 0$ and $X_{\rm{B}} = n$ for species A and B respectively, it would take $n$ iterations of the algorithm \ref{alg:mcsimple} to reach the equilibrium, where there are only $n$ particles of specie A and no possible reaction anymore. 
 
-Even though this particular model system may not be very interesting in practice, it nicely shows what is very ineffective in the simple algorithm. Because in each iteration only one reaction is executed, the simulation takes unnecessarily long time, although there is only one possible reaction. 
+Even though this particular model system may not be very interesting in practice, it nicely shows what is very ineffective in the simple algorithm. Because in each iteration, only one reaction is executed, the simulation takes an unnecessarily long time, although there is only one possible reaction. 
 
-We might encounter a similar problem in much more complicated systems, where for some period of time of the simulation (typically at the beginning) one reaction strongly dominates the others, and it is selected in (almost) all iterations. Therefore, it might make sense to execute each selected reaction multiple times in each iteration. Naturally, that means modifying the time step $\tau$ as well.
+We might encounter a similar problem in much more complicated systems, where for some period of time of the simulation (typically at the beginning), one reaction strongly dominates the others, and it is selected in (almost) all iterations. Therefore, it might make sense to execute each selected reaction multiple times in each iteration. Naturally, that means modifying the time step $\tau$ as well.
 
-We can take this idea one step further, if we allow to execute a non-integer amount of reactions in each iteration. In this text, I will use the word ``bulk'' to refer to this amount. 
+We can take this idea one step further if we allow executing a non-integer amount of reactions in each iteration. In this text, we will use the word ``bulk'' to refer to this amount -- and it will be generally considered a real number.
 
-\section{Improved algorithm}
+\section{Modified algorithm}
 
 There are very few differences in respect to the algorithm \ref{alg:mcsimple} presented in the previous chapter. However, it is still included here for clarity.
 
 \begin{algorithm}
-\caption{Improved Monte Carlo}\label{alg:mcadvanced}
-\KwData{$(X_i)_{i=1}^N$, $t_{\rm{end}}$, \textcolor{blue}{bulk $b$}}
-\KwResult{particle concentrations $(X_i)_{i=1}^N$ at discrete time steps up to $t_{\rm{end}}$}
+\caption{Modified Monte Carlo}\label{alg:mcadvanced}
+\KwData{$(K_i)_{i=1}^N$, $t_{\rm{end}}$, \textcolor{blue}{bulk $b$}}
+\KwResult{species population $(X_i)_{i=1}^N$ at discrete time steps up to $t_{\rm{end}}$}
 
 $t \gets 0$\\
 \While{$t < t_{\rm{end}}$}{
     calculate transition rates $a_1, \ldots, a_M$ for all reactions \\
 
     $R_\mu \gets $ uniformly sampled reaction, where each reaction $R_i$ weighted by $a_i$\\
-    update concentrations $X_i$ according to the reaction $R_\mu$ \textcolor{blue}{$b$ times}\\
+    update populations $X_i$ according to the reaction $R_\mu$ \textcolor{blue}{$b$ times}\\
     
     $a_0 \gets \sum_{\mu=1}^M a_\mu$ \\
     $r \gets $ uniformly sampled from $\left( 0, 1 \right)$ \\
@@ -35,5 +37,62 @@ $t \gets 0$\\
 }
 \end{algorithm}
 
-Naturally, the randomly chosen time step $\tau$ is multiplied by the parameter bulk $b$, representing the number of reactions executed at once each iteration. In case of non-integer bulk $b$, we do not need to modify anything. The only possibly unclear part is when updating the concentrations -- if reaction $R_\mu$ changes the concentration $X_i$ of a specie $S_i$ by $\Delta n_i$, we update it by $b\, \Delta n_i$, instead. This holds even when the reaction consumes particles of a specie, and $\Delta n_i$ is thus negative.
+Naturally, the randomly chosen time step $\tau$ is multiplied by the parameter bulk $b$, representing the number of reactions executed at once each iteration. In the case of non-integer bulk $b$, we do not need to modify anything. The only possibly unclear part is when updating the concentrations -- if reaction $R_\mu$ changes the population $X_i$ of a specie $S_i$ by $\Delta n_i$, we update it by $b\, \Delta n_i$, instead. This holds even when the reaction consumes particles of a species, and $\Delta n_i$ is thus negative.
 
+\section{Superparticles}
+
+In this text, we will sometimes use the parameter $N$ instead of the bulk $b$. That corresponds to another point of view of the reactions being computed in bulk; instead of executing multiple reactions, we can imagine executing a single reaction for ``superparticles" -- composed of several real particles. The number of superparticles $N$ of a species is then typically lower than the number of real particles in the same volume, resulting in possible computational speed improvement.
+
+However, we cannot have each specie being composed of the same number of superparticles. This is obvious from the fact that they might all participate in a reaction together~-- and if we think of $b$ as the weight of the reaction, the involved species must all have the same weight as the reaction they participate in (their weight again being equal to bulk). Nevertheless, if all the species have the same weight and different concentrations, they must differ in the number of superparticles they consist of.
+
+We will deal with this issue by using $N$ as the number of superparticles of a chosen species. This species will be either obvious from the context (especially if we watch the development of the concentration of a single specie in time) or specified explicitly. 
+
+Thus, there is a relation between the bulk $b$ (superparticle and reaction weight) and the main species' ($S_m$) superparticle number $N$, given by the equation
+
+$$b = \frac{X_{m, t}}{N} = \frac{\left[ S_m\right]_t V}{N}.$$
+
+If we compute the bulk from a given $N$ this way, the superparticle number $N_i$ of a specie $S_i$ is then calculated simply as 
+
+$$N_i = \frac{X_{i, t}}{b}.$$
+
+Because the concentration usually changes with time in the simulation, we compute $N$ from the initial concentration $\left[S_m\right]_0$, unless specified otherwise. In the case of more complicated systems, we might need to change $N$ throughout the simulation, reflecting the current particle concentrations. 
+
+\section{Equal reaction weights}
+
+The drawback of the improved Monte Carlo algorithm is a dramatic loss of precision in rare species representation. The inaccuracy of rare specie particle concentrations is disproportional to the more abundant species due to the fact that the corresponding reactions get rarely chosen.
+
+Dias and Guerra explore two general methods to reduce minority specie variance: equal reaction weights and variable species weight. However, the latter is not as computationally efficient, and because it maintains similar relative fluctuations, they become disproportional for common species concentrations \cite{tiago20}. Hence, we do not discuss the variable species weight variance reduction technique further in this work. 
+
+Instead, we address the rare species fluctuations issue by considering equal reaction weights. The idea is to choose each reaction with the same probability while updating the corresponding concentrations proportionally to the reaction rate. Note, however, that this approach may then lead to fractional particle concentrations.
+
+Aside from providing variance reduction, this method is also somewhat faster than the simple Monte Carlo. Therefore, here we further extend the number of systems we can simulate with our stochastic tool at the expense of stepping a bit closer to the deterministic approach. The approach is still valid in the sense that it matches the deterministic solution in the thermodynamic limit.
+
+\subsection{Description}
+
+More precisely, given $M$ reactions, we sample one of them with a uniform probability of $1/M$. Then, for each specie involved in the chosen reaction $R_\mu$, we multiply the absolute concentration change by $\frac{a_\mu}{a_0}M$, where $a_\mu$ is the transition rate of the selected reaction $R_\mu$ and $a_0$ is the sum of all transition rates of all reactions. Therefore, the particle concentration change is weighted by the transition rate of the selected reaction, keeping the properties of the stochastic algorithm intact.
+
+For example, suppose we select a reaction of the general form
+
+\begin{center}
+\begin{gather*}
+\ch{n_1 S_1 + n_2 S_2 + {\ldots} + n_r S_r ->[ $k_\mu$ ] m_1 S_1 + m_2 S_2 + {\ldots} + m_r S_r }, 
+\end{gather*}
+\end{center}
+
+where any of the coefficients $n_i, m_i$ can be zero. Then, during the particle concentration update for specie $S_i, 1 \leq i \leq r$, it would be recomputed as 
+
+$$X_i \leftarrow X_i + (m_i - n_i) \frac{a_\mu}{a_0}M.$$
+
+As previously stated, the ERW method can be combined with the superparticle approximation. In this case, the concentration update would take into consideration also the bulk $b$:
+
+$$X_i \leftarrow X_i + b (m_i - n_i) \frac{a_\mu}{a_0}M.$$
+
+Naturally, weighting all reactions equally must result in scaling the randomly selected time step $\tau$ according to the selected reaction transition rate $a_\mu$. Similarly to the concentration recalculation, the weighted time step would be $\frac{a_\mu}{a_0}M\tau$, or $b\frac{a_\mu}{a_0}M\tau$ when considering the bulk as well.
+
+\subsection{Limits}
+
+Note that this method is no longer equivalent to using the simple Monte Carlo algorithm, and thus there must be arguments made for its validity. In fact, this method does not exactly solve the stochastic master equation; instead, it leans closer to the deterministic solution \cite{tiago20}.
+
+TODO: validity discussion
+
+It is not suitable for low particle models and systems with chemical instabilities resulting in rapid concentration growth. Also, it should not be used on systems where the fluctuations tend to be very significant. In these cases, the simple Monte Carlo algorithm should be employed. \cite{tiago20}

@@ -56,6 +56,9 @@
 \usepackage{mathptmx}  %% volne dostupny font Adobe Times Roman
 %  \usepackage[mtbold,mtplusscr,mtpluscal]{mathtime} % komercni matematicky font, dostupne pouze na UMS
 \usepackage{algorithm2e}
+\usepackage{framed,color}
+\usepackage{biblatex}
+\addbibresource{sources.bib}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -70,9 +73,12 @@
 
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{chemformula}
-\usepackage{natbib}
+%\usepackage{natbib}
 \usepackage{color}
-\bibliographystyle{agsm}
+\usepackage{booktabs}
+\usepackage{markdown}
+%\bibliographystyle{agsm}
+\usepackage{minted}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%% NASTAVENI POVINNYCH CASTI DLE SMERNICE DEKANA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -89,9 +95,9 @@
 %% Barevne - pro dokument s barevnymi odkazy
 %% Tisk - pro dokument v cernobile barve
 
-\NazevUstavu{Název ústavu}{Department of ...}
+\NazevUstavu{Název ústavu}{Department of Physical Electronics}
 
-\RokOdevzdaniPrace{2021}
+\RokOdevzdaniPrace{2022}
 
 \AkademickyRok{2021/2022}
 
@@ -125,13 +131,16 @@
 {In this thesis, we explore the stochastic approach to particle concentration simulation in plasma. The main focus is put into investigating the theoretical limits of this method, especially when it comes to concentrations of very different orders of magnitude. The simulation outcomes are then compared to the results obtained from numerical solutions to the corresponding differential equations. The necessary reaction rates are taken from databases of experimentally obtained data.}
 
 \TextPodekovani%
-{Na tomto místě bych chtěl(-a) poděkovat ...}
+{Především bych chtěl poděkovat svému vedoucímu práce Mgr. Zdeňkovi Bonaventurovi, Ph.D., a to za nadstandardní pomoc při řešení problémů. Vždy, když to bylo potřeba, si na mě udělal čas.
+
+Kromě toho děkuji své rodině a přítelkyni, kteří mě při psaní podporovali.
+}
 
 \TextProhlaseni%
 {Prohlašuji, že jsem svoji bakalářskou/diplomovou/rigorózní práci vypracoval(-a) samostatně s~využitím informačních
 zdrojů, které jsou v práci citovány.}
 
-\DatumProhlaseni{4. ledna 2021}
+\DatumProhlaseni{23. května 2022}
 
 %%%%%%%%%%%%
 %% Konkrétní příklad
@@ -285,8 +294,8 @@ zdrojů, které jsou v práci citovány.}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%% OBSAH %%%%%%%%%%%%%%%%%%%%%%%%
 
-\pdfbookmark{Obsah}{Obsah}
-\VytvorObsah
+%\pdfbookmark{Obsah}{Obsah}
+\tableofcontents
 \cleardoublepage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -311,7 +320,13 @@ zdrojů, které jsou v práci citovány.}
 \vloz{text_prace/2reaction}
 \cleardoublepage
 
-\vloz{text_prace/kapitola}
+\vloz{text_prace/micro_cathode}
+\cleardoublepage
+
+\vloz{text_prace/implementation}
+\cleardoublepage
+
+\vloz{text_prace/conclusion}
 \cleardoublepage
 
 \renewcommand{\indexname}{Rejstřík}
@@ -337,5 +352,5 @@ zdrojů, které jsou v práci citovány.}
 \newpage
 \mbox{}
 
-\bibliography{sources}
+\printbibliography
 \end{document}

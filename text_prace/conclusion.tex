@@ -1,0 +1,14 @@
+\chapter*{Conclusion}
+\addcontentsline{toc}{chapter}{Conclusion}
+
+We have been able to create a tool for stochastic simulation of certain low-plasma systems. It should provide comfort to the user through its application interface, and it should be general enough so that it can be used for most systems. It has been validated against deterministic solutions of two general test cases.
+
+The drawback is, however, that it is still not a good idea to use the predefined functions directly, unless solving very simple systems. Generally, it is necessary to leverage any domain knowledge and incorporate it into the algorithm, as a means to make the computation practically feasible. For this reason, great effort was put into making the code readable and easily modifiable.
+
+On the other hand, the tool provides some generic efficiency optimizations. Namely, processing particles in bulk and equal reaction weights technique proposed by Dias and Guerra \cite{tiago20}. There are methods available for deterministic solution, which can serve as a means to explore the model and decide on the suitable approximation. 
+
+The system can be specified in an input file, which our simulation tool is then able to parse. It is able to work with reaction rates given as a constant or specified by a table in a separate file. Although, it does not support defining a reaction rate by a formula, the user can circumvent it without too much extra effort by providing the formula directly in the code.
+
+There are many more techniques that could be employed to speed up the Monte Carlo computation. Variable species weight method proposed by Dias and Guerra \cite{tiago20} is not included, because it does not produce satisfying results. For example, constant-time kinetic Monte Carlo \cite{constant-time} might be useful, but it would have to be examined on the ground of plasma systems.
+
+The resulting stochastic tool could be much faster if implemented in a different programming language, such as C++. However, the author of the thesis is not proficient in it. Several optimizations would be possible even in Python -- namely, we could take bigger advantage of the \verb|numpy| module, which is known to be very efficient.

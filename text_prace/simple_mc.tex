@@ -1,18 +1,24 @@
 \chapter{Simple Monte Carlo}
 
-In this chapter, I will explain the basic concepts of the Monte Carlo method and its properties. The text is mostly based on the papers \cite{gillespie76}, \cite{gillespie77}, and \cite{tiago20}.
+In this chapter, we will explain the basic concepts of the Monte Carlo method, as originally described by Gillespie \cite{gillespie76}, and its properties. For this reason, it is sometimes called the Gillespie algorithm; every so often, the kinetic Monte Carlo. The notation we will be using throughout the text is borrowed from Dias, and Guerra \cite{tiago20}.
 
 \section{Introduction}
 
-Often, it can be useful to use stochastic computations in place of deterministic because of the complexity of the underlying differential equations. (TODO: do they model real world simulations which are random by their nature better? are they faster? can they also be slower? any practical examples?)
+When considering a chemical system, expressing the underlying differential equations is, in terms of difficulty, equivalent to describing the system for a stochastic solver. Nevertheless, the deterministic simulations tend to be faster, and we can take advantage of already existing efficient numerical algorithms capable of solving almost all practically relevant systems of differential equations. Even from a strictly mathematical point of view, this problem is much easier than the stochastic master equation of the system \cite{gillespie76}.
+
+Although we will not be trying to solve the master equation directly, the Monte Carlo algorithm is fully equivalent to it. This is achieved by numerically simulating the underlying Markov process, representing the chemical system \cite{gillespie76}. Instead of computing the entire probabilistic distribution, which is usually very expensive, we sample single realizations of the state vector \cite{mc_matlab}. The algorithm is straightforward and efficient, yet general and powerful enough so that it is used in various other fields -- from computer science \cite{computer_science}, through biology \cite{biology}, to economics \cite{economics}.
+
+In the end, the deterministic solution still wins in terms of speed -- especially for systems with frequent reactions, where it ultimately beats the Monte Carlo approach. However, it completely fails to model the inherent statistical correlations and fluctuations of such systems \cite{gillespie76}. Furthermore, a numerical deterministic solution of the underlying differential equations is not guaranteed to describe the average concentration values accurately \cite{gillespie77}.
+
 
 \section{Definition}
 
-Suppose we have a system of $N$ species $(S_i)_{i=1}^N$, and we denote the current number of molecules of each chemical species $X_i$. Each of these species can undergo any of the $M$ chemical reactions $(R_\mu)_{\mu=1}^M$. There is a transition rate $a_\mu$ corresponding to each reaction. At last, we denote the sum of transition rates $a_0$: $a_0 = \sum_{\mu=1}^M a_\mu$, this corresponds to the the decay constant of the Poisson distribution.
+Suppose we have a system of $N$ species $(S_i)_{i=1}^N$, and we denote the current molecule concentrations of each chemical species $K_i$ in the modeled volume $V$. We will use $X_i$ as a shortcut for $K_iV$, symbolizing the number of molecules for all species in the system whenever it is convenient. Each of these species can undergo any of the $M$ chemical reactions $(R_\mu)_{\mu=1}^M$. There is a transition rate $a_\mu$ corresponding to each reaction. Roman indices will be used in connection to the $N$ chemical species, while Greek indices refer to the chemical reactions. At last, we denote the sum of transition rates $a_0$: $a_0 = \sum_{\mu=1}^M a_\mu$, this corresponds to the decay constant of the Poisson distribution.
 
-In this system, we can define the reaction probability density function $P(\tau, \mu)$, which is a joint probability density function on the variables $\tau$ and $\mu$. The continuous variable $\tau \in \left[ 0, \infty \right)$ expresses the time interval in which the next reaction occurs, and the the discrete variable $\mu \in \{ 1, 2, \ldots, M \}$ stands for a specific reaction.
+In this system, we can define the reaction probability density function $P(\tau, \mu)$, which is a joint probability density function on the variables $\tau$ and $\mu$. The continuous variable $\tau \in \left[ 0, \infty \right)$ expresses the time interval in which the next reaction occurs, and the discrete variable $\mu \in \{ 1, 2, \ldots, M \}$ stands for a specific reaction. Clearly, this corresponds to the previously mentioned Markov process in the space of the species population numbers in the volume $V$ considered. If needed, the process could be easily extended by another dimension for discrete subvolumes as a generalization for certain nonhomogeneous systems \cite{gillespie76}.
 
-It can be proven \citep{gillespie76}, that such probability density function is of the following form
+
+Gillespie \cite{gillespie76} proves that such probability density function is of the following form
 
 \[
 P(\tau, \mu) = \left\{
@@ -23,6 +29,8 @@ P(\tau, \mu) = \left\{
 \right. .
 \]
 
+Thus, the resulting probability depends on the transition rates of all reactions; and, through them, on the current number of molecules of all reacting species and the reaction coefficients (see section \ref{section:transition-rates}). These can, in turn, be influenced by other parameters, as the section \ref{section:dependent-parameters} explains.
+
 %% This declares a command \Comment
 %% The argument will be surrounded by /* ... */
 \SetKwComment{Comment}{/* }{ */}
@@ -31,18 +39,18 @@ P(\tau, \mu) = \left\{
 
 \section{Algorithm}
 
-We will start by illustrating the main idea in the algorithm. In the pseudocode \ref{alg:mcsimple}, several details have been omitted for the sake of simplicity and I will attempt to specify it further in this chapter. Namely, it must take more input data than explicitly stated -- all the reactions $(R_\mu)_{\mu=1}^M$, and sometimes even additional parameters -- such as current value of reduced electric field $E/N$ -- necessary for computing the transition rates $(a_\mu)_{\mu=1}^M$. Moreover, it does not explain how to compute the reaction rates and several other details. This will also be covered later in this chapter as promised.
+First, we will provide an explicit specification of the algorithm. In the pseudocode \ref{alg:mcsimple}, several details have been omitted for the sake of simplicity, and I will attempt to specify them further in this chapter. Namely, it must take more input data than explicitly stated -- all the reactions $(R_\mu)_{\mu=1}^M$, and sometimes even additional parameters -- such as the current value of reduced electric field $E/N$ or the gas temperature -- if the transition rates $(a_\mu)_{\mu=1}^M$ depend on it. Moreover, it does not explain how to compute the reaction rates and several other details. These will also be covered momentarily.
 
 \begin{algorithm}
 \caption{Simple Monte Carlo}\label{alg:mcsimple}
-\KwData{initial particle concentrations $(X_i)_{i=1}^N$, simulation duration $t_{\rm{end}}$}
-\KwResult{particle concentrations $(X_i)_{i=1}^N$ at discrete time steps up to $t_{\rm{end}}$}
+\KwData{initial species populations $(X_i)_{i=1}^N$, simulation duration $t_{\rm{end}}$}
+\KwResult{species populations $(X_i)_{i=1}^N$ at discrete time steps up to $t_{\rm{end}}$}
 
 $t \gets 0$\\
 \While{$t < t_{\rm{end}}$}{
     calculate transition rates $a_1, \ldots, a_M$ for all reactions \\
 
-    $R_\mu \gets $ uniformly sampled reaction, where each reaction $R_i$ weighted by $a_i$\\
+    $R_\mu \gets $ uniformly sampled reaction, where each reaction $R_i$ is weighted by $a_i$\\
     update concentrations $X_i$ according to the reaction $R_\mu$ \\
     
     $a_0 \gets \sum_{\mu=1}^M a_\mu$ \\
@@ -52,15 +60,19 @@ $t \gets 0$\\
 }
 \end{algorithm}
 
-Note that the algorithm makes two independent random choices -- \textit{what} and \textit{when}. Specifically, it makes the assumption that the time interval to the next reaction $\tau$ and the concrete reaction taking place next $R_\mu$ are independent.
+Note that the algorithm makes two independent random choices -- \textit{what} and \textit{when}. Specifically, it assumes that the time interval to the next reaction $\tau$ and the concrete reaction taking place next $R_\mu$ are independent.
 
-The transition rates $(a_\mu)_{\mu=1}^M$ need to be recomputed at each iteration, because they depend on the current particle concentrations $(X_i)_{i=1}^N$. The particle concentrations also change at each iteration due to executing the selected reaction $R_\mu$. As a result, we get the implicit output consisting of particle concentrations at discrete time steps (typically of varying length) up to the ending time of the simulation $t_{\rm{end}}$: $(X_{i, t})_{i, t}$. 
+The transition rates $(a_\mu)_{\mu=1}^M$ need to be recomputed at each iteration because they depend on the current species populations $(X_i)_{i=1}^N$ (and possibly on other parameters specific to the model considered). The particle concentrations also change at each iteration due to executing the selected reaction $R_\mu$. As a result, we get the implicit output consisting of particle populations at discrete time steps (typically of varying length) up to the specified ending time of the simulation $t_{\rm{end}}$: $(X_{i, t})_{i, t}$. Because this notation might become cumbersome when dealing with chemical species, we will use $\left[ S_i \right]_t$ to denote $K_{i, t} = X_{i, t}/V$.
 
-\section{Transition rates}
+\section{Transition rates}\label{section:transition-rates}
 
-It is left to explain what the transition rates are and how to compute them. Consider the space of all possible reactions over given particle concentrations for the example reaction \ch{S_i + S_j ->[ $k$ ] anything}, for two distinct species $S_i, S_j, i \neq j$ with a reaction rate $k$. The products in the reaction do not matter. Then, the number of possible reactions in the space is $X_iX_j$, and in our computation, we will weigh the reaction rate $k$ by this number $c = X_iX_j$, producing the transition rate $a = ck = X_iX_jk$.
+TODO: possibly reworked in the light of erroneous a computation
 
-Now, let us consider the reaction \ch{2 S_i ->[ $k$ ] anything}. The number of possible reactions here is $c = {X_i \choose 2} = \frac{X_i(X_i - 1)}{2}$. Thus, the transition rate $a$ corresponding to our model reaction is $ck = \frac{X_i(X_i - 1)}{2}k$.
+TODO: needs to work with Xi = concentrations, not no. of particles
+
+It is time to explain what the transition rates are and how to compute them. Consider the space of all possible reactions over given particle concentrations in the considered volume $V$ for the example reaction \ch{S_i + S_j ->[ $k$ ] anything}, for two distinct species $S_i, S_j, i \neq j$ with a reaction rate $k$. The products in the reaction do not matter for our purposes. Then, the number of possible reactions in the space is $X_iX_jV^2$, and in our computation, we will weigh the reaction rate $k$ by this number $h = X_iX_jV^2$, producing the transition rate $a = hk = X_iX_jV^2k$.
+
+Now, let us consider the reaction \ch{2 S_i ->[ $k$ ] anything}. The number of possible reactions here is $h = {X_i \choose 2} = \frac{X_i(X_i - 1)}{2}$. Thus, the transition rate $a$ corresponding to our model reaction is $hk = \frac{X_i(X_i - 1)}{2}k$.
 
 After this rather intuitive introduction, we will define the transition rates precisely. Given a reaction $R_\mu, 1 \leq \mu \leq M, $ of the general form 
 
@@ -83,18 +95,45 @@ Naturally, if $X_i < n_i$ for any reactant specie $S_i$ (i.e. $1 \leq i \leq r$)
 
 \section{Reaction selection}
 
-If it has not been sufficiently clear from the context, here I provide the reader with detailed description of the random reaction selection, which takes place in each iteration of the algorithm \ref{alg:mcsimple}. 
+If it has not been sufficiently clear from the context, here we provide the reader with a detailed description of the random reaction selection, which takes place in each iteration of the algorithm \ref{alg:mcsimple}. 
 
-To take the transition rates into account, we select each reaction $R_\mu$ with probability $p_\mu = \frac{a_\mu}{a_0}$, where $a_0$ is the sum of all transition rates as specified in the algorithm. Therefore, we uniformly sample a number $r$ between 0 and 1, and based on it, we select reaction $R_\mu$ with transition rate $a_\mu$ satisfying the inequality 
+To take the transition rates into account, we select each reaction $R_\mu$ with probability $p_\mu = \frac{a_\mu}{a_0}$, where $a_0$ is the sum of all transition rates as specified in the algorithm. Therefore, we uniformly sample a number $r$ between 0 and 1; and based on it, we select reaction $R_\mu$ with transition rate $a_\mu$ satisfying the inequality 
 
 $$
 \sum_{j = 1}^{\mu - 1}\frac{a_\mu}{a_0} < r \leq \sum_{j = 1}^{\mu}\frac{a_\mu}{a_0}.
 $$ 
 
-For the Monte Carlo algorithm to run correctly, it is essential to select the random number for reaction selection and time advancement independently. 
+For the Monte Carlo algorithm to run correctly, it is essential to select the random number for reaction selection and time advancement independently. Not all pseudorandom generators are suitable for Monte Carlo simulations (e.g., they might not produce quality subsequent random numbers). However, detailed analysis is beyond the scope of this thesis. The quality of pseudorandom generators in the context of Monte Carlo algorithms has been carefully examined by Gentle \cite{random}. 
 
-\section{Time-dependent parameters}
+\section{Time step selection}
 
-variable reaction rate (depends on EN)
+In some cases, the presented algorithm might produce plausible results even when not sampling a random time step. In that case, we should use the mean value of the time between two subsequent reactions, which can be computed from the probability density function. 
 
-changing EN, current, ...
+\newcommand\diff{\mathop{}\!d}
+\newcommand*\Eval[3]{\left.#1\right\rvert_{#2}^{#3}}
+
+\begin{equation*}\begin{split}
+    \int_0^\infty \tau \sum_{\mu = 1}^M a_\mu \exp{\left( -a_0 \tau \right)}\,d\tau =  
+    \sum_{\mu = 1}^M a_\mu \left( \int_0^\infty \tau \exp{\left( -a_0 \tau \right)}\,d\tau \right) = \\
+    \left[
+          \begin{alignedat}{2}
+          u       &= \tau            \quad & \diff v &= \exp{\left(-a_0\tau\right)}\diff\tau \\
+          \diff u &= \diff\tau \quad & v &= -\frac{1}{a_0}\exp{\left(-a_0\tau\right)}
+          \end{alignedat}\,
+    \right] = 
+    \sum_{\mu = 1}^M a_\mu \left( \Eval{-\frac{1}{a_0}\exp{\left(-a_0\tau\right)}\tau}{0}{\infty} + \frac{1}{a_0}\int_0^\infty\exp{\left(-a_0\tau\right)}\,d\tau \right) = \\
+    \sum_{\mu = 1}^M a_\mu \left(\frac{1}{a_0}\int_0^\infty\exp{\left(-a_0\tau\right)}\,d\tau \right) =
+    \sum_{\mu = 1}^M a_\mu \frac{1}{a_0} \Eval{\left(-\frac{1}{a_0}\exp{\left(-a_0\tau\right)}\right)}{0}{\infty} = 
+    \frac{1}{a_0^2} \sum_{\mu = 1}^M a_\mu = \frac{1}{a_0}
+\end{split}\end{equation*}
+
+Therefore, we might use $\frac{1}{a_0}$ as our fixed time step. This approach might be a bit faster because sampling a random number is one of the slowest parts of the algorithm iteration. However, depending on the modeled system, one might lose much precision.
+
+This method has been successfully employed by Bunker et al. \cite{bunker}.
+
+\section{Time-dependent parameters}\label{section:dependent-parameters}
+
+The described algorithm is able to handle time-dependent parameters as well. In practice, this typically includes reduced electric field $E/N$ or electric current present in the plasma cathode. More precisely, any parameter dependent on the current time of the simulation $t$ and the current particle concentrations $\left(\left[S_i\right]_t\right)_{i=1}^N$ can be updated at each iteration of the \verb|while| loop. These parameters can, in turn, affect the transition rates of the modeled reactions.
+
+Thus, the relationship can be quite complex, with parameters affecting the values of the transition rates and, at the same time, depending on them through the ever-changing particle concentrations. The Monte Carlo algorithm makes it very easy and convenient for implementation, being much simpler than corresponding differential equations. However, it might not work properly if the parameter fluctuates a lot at sufficiently small time intervals, and thus the system cannot be regarded as being homogeneous with respect to it \cite{gillespie76}.
+

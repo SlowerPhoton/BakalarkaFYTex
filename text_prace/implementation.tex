@@ -1,0 +1,249 @@
+\chapter{Implementation}
+
+\newcommand{\texthash}{\#}
+%\newcommand{\uv}[1]{`#1`}
+
+\newcommand*{\TakeFourierOrnament}[1]{{%
+\fontencoding{U}\fontfamily{futs}\selectfont\char#1}}
+\newcommand*{\danger}{\TakeFourierOrnament{66}}
+
+%\shorthandoff{-}
+\begin{markdown*}{%
+  hybrid,
+  definitionLists,
+  footnotes,
+  inlineFootnotes,
+  hashEnumerators,
+  fencedCode,
+  citations,
+  citationNbsps,
+  pipeTables,
+  tableCaptions,
+}
+
+This chapter ought to be taken as a user manual for our simulation tool with the intention of being coherent and precise. For this reason, it is written in a different style than the rest of the thesis. Aside from this guide, there are also example scripts available. It is recommended to start with those -- as the tool is meant to be intuitive -- and only come back here if something seems unclear.
+
+## Input files
+
+The modeled system can be specified using an intuitive and simple language inside input files for user convenience. Usually, these files use the extension `.input`. Inside it, you need to specify the parameters and the reactions of the system. The following is an example of an input file for the two-reaction test case.
+
+```
+time_ini = 0
+time_end = 3.0
+calc_step = 1
+
+# gas temperature, K
+gas_temperature = 301.0
+
+# reduced electric field, Td
+reduced_field = 50.0
+
+e = 1e3
+Ar^+ = 1e3
+Ar = 1e10
+
+# rates in micrometers
+Ar + e => e + e + Ar^+      ! 1e-8
+e + Ar^+ + Ar => Ar + Ar    ! 1e-12
+```
+
+Empty lines and lines starting with the hashtag sign '\texthash' are ignored. Therefore, lines beginning with '\texthash' can be used as comments. The remaining lines must either set up a parameter or specify a reaction. There should be only one parameter or reaction specification per line, and each parameter or reaction specification should happen on one line only. If you define a parameter of the same name on multiple lines, it will be set to the value specified last.
+
+### Parameters
+Parameters are set using the equals sign '=': `<parameter name> = <parameter value>`. Any whitespace surrounding the `<parameter name>` and `<parameter value>` is ignored, but it can be present inside it. For example, the line `my parameter = text value` would create a parameter called 'my parameter' and set its value to the string 'text value'. If the `<parameter value>` can be converted to float, it will be converted automatically during the parsing; i.e., the values of the parameters can be either floats or strings.
+
+There is one special parameter that must be specified, and the parser will raise an exception if
+it is missing from the input file.
+
+* `time_end` -- the ending time of the simulation
+
+Another parameter needs to be specified only if the user wishes to read reaction rates from a table.
+
+* `table_file` -- path to the file containing all tables for the input file
+
+Most parameters are necessary for the computation, but if they are missing from the input file, 
+they are set to their default value. The parser will still raise a warning to let the user know, 
+that the parameter was set to its default value internally. These parameters are:
+
+* `time_ini` -- the initial time of the computation (default value 0)
+* `calc_step` -- specifies the number of steps of the calculation (number of iterations
+of the Monte Carlo algorithm) after which the concentration values of all the species 
+are saved (default value 1)
+
+Aside from these, each species present in the reactions must have specified its initial density (`<species name> = <initial density>`); if it is not specified, the parser will raise a warning and set the initial density to 0.
+
+\definecolor{shadecolor}{rgb}{1,0.8,0.3}
+\begin{shaded}{**Best practice:**}
+     It is strongly recommended you specify all input parameters in units of SI. The only exception is the reduced electric field $E/N$, which is usually expected to be in townsends (Td).
+\end{shaded}
+
+
+### Reactions
+Reactions are specified using the arrow operator '=`>`': 
+
+```<reactants> => <products> ! <rate specification>```.
+
+Reactants and products are separated by the plus sign '+`' with a space on each side of '+'. 
+The plus sign can be omitted entirely; the reactants and products can be separated by just whitespace instead.
+
+`<rate_specification>` can either be a constant or point to a table with the rate specification.
+In the example input file above, all rates are set as constants. If you wish to specify
+the rates inside a table, write `table: <table name>` after the exclamation mark '!'.
+Example reaction with table rate: `e + Ar => e + e + Ar^+         !   table: Ar -> Ar^+`. 
+In the example, the table's name is 'Ar -`>` Ar`^`+' (surrounding whitespace is ignored).
+
+
+\definecolor{shadecolor}{rgb}{1,0.8,0.3}
+\begin{shaded}{**Note:**}
+      If you use table rate specifications, you must set the parameter `table_file` to the path to the table file containing all specified tables. 
+\end{shaded}
+
+`<rate_specification>` is considered constant whenever it can be converted to float using the Python built-in `float` method. 
+
+If it is not a constant, nor does it start with the `table:` prefix, indicating that the reaction rate is specified in a provided table, the parser will produce a warning. However, it still parses the file and expects the user to set the reaction rate properly. This might be useful when the reaction rate depends on some variable parameters of the simulation, and it is computed using a formula. In that case, the user provides a function supplying the otherwise automatically created rate function in the code after calling the parser. 
+
+\definecolor{shadecolor}{rgb}{1,0.8,0.3}
+\begin{shaded}{**Best practice:**}
+     Just as the parameters, it is encouraged to use units of SI when specifying the reaction rates.
+\end{shaded}
+
+## Table files
+Table files have a much simpler syntax. 
+Empty lines and lines starting with the hashtag sign '\texthash' are ignored.
+
+When you want to specify a table in the file, you must start by writing the table name on
+the first line of the table. On the following lines, you can write any comments, and these lines are ignored. You do not need to use the hash sign here. When you are done with commenting,
+insert a dashed line (e.g., '`-----`'). It must contain at least 2 dashes.
+
+After the dashed line, each line is considered a table row. Each table row must contain
+exactly **two columns**, these are parsed and saved as floats. 
+
+The table ends with another dashed line ('`-----`'). Again, at least 2 dashes should be used.
+
+The parser will then linearly interpolate the data from the table.
+
+Example table file:
+```
+Ar -> Ar^+
+  1.580e+1 / threshold energy
+EN (Td)     k [1/s]
+------------------------------------------------------------
+  1.580e+1   0.000e+0
+  1.600e+1  2.020e-22
+  1.700e+1  1.340e-21
+  1.000e+4  1.350e-21
+------------------------------------------------------------
+
+# HERE COMES ANOTHER TABLE
+
+Ar* -> Ar^+
+   4.30  / threshold energy
+--------------------------------
+0.000  0.000
+4.80   0.000
+5.00   0.2020E-21
+--------------------------------
+```
+
+\definecolor{shadecolor}{rgb}{1,0.8,0.3}
+\begin{shaded}{**Note:**}
+     When interpreting the data from the table, the parser assumes that the first column specifies the reduced electric field $E/N$ in townsends (Td). The second column is taken as the reaction rate in suitable units of SI. However, it can be used for other purposes as well in the code after calling the parser.
+\end{shaded}In the first chapter, we provide an introduction to the Monte Carlo algorithm and describe its basic principles. Afterward, we discuss its limits and present improvements to make it applicable to larger (and practically interesting) systems. The subsequent chapters verify our tool on two test cases -- a simple yet illustrative two-reaction system and a low-temperature argon plasma model with diffusion losses. The last chapter is to be considered a user manual, covering the simulation tool we have developed. 
+
+
+## Running the solver
+
+Once you have the input file (and table file if necessary) ready, you can use the solver utilities and then run it.
+
+### Method `parse_file` from `input_parse.py`
+First, you need to parse the input file using the function `parse_file` from `input_parser.py`: `all_species, parameters, reactions, tables = parse_file(input_filename)`, where `input_filename` is a path to the input file. Variable `all_species` is a set of all species specified in the reactions. Variable `parameters` is a dictionary storing all parameters (either set in the input file or by the parser to the default values). Variable `reactions` is a list of objects of type  `Reaction` storing all necessary information about each reaction specified in the input file. Variable `tables` is a dictionary of parsed tables indexed by their name. The dictionary is empty if the parameter `table_file` is not specified in the input file. Each table is a list of its rows. The user typically does not need to use it unless there is a table that is not linked to a reaction as its rate in the input file. The user wants to use it for other purposes, such as computing mean electron energy $\langle E \rangle$ from the reduced electric field $E/N$. In that case, it is convenient to turn it into a function corresponding to the linear interpolation of the table, as the following example code illustrates.
+
+```python
+# table file excerpt:
+# mean energy
+# E/N (Td)    Mean energy (eV)
+# --------------------
+# 1	    0.7910
+# 50	6.125	
+# 100	6.690
+# --------------------
+
+all_species, parameters, reactions, tables = parse_input_file("file.input")
+E = parse_table("mean energy", tables)  # mean electron energy
+E(30)  # returns interpolated mean electron energy for 30 Td
+```
+
+Now, if necessary, you can set more parameters in the code using regular Python 3 syntax.
+
+```python
+parameters[parameter_name] = parameter_value
+```
+
+### Methods in `solver.py`
+
+The module `solver.py` contains methods for both deterministic and stochastic simulations. Functions `solve_generic` and `solve_numerical` are generic solvers, with the former being the Monte Carlo implementation and the latter computing numerical deterministic solution. Often, it is better to implement your own solver leveraging domain information about the modeled system as it can be much more efficient. For this reason, we invite you to take first use the generic solvers, and if they result to be too slow, take inspiration from them and implement your own one specifically for your problem.
+
+
+```python
+def solve_generic(selected_params, parameters, reactions, update=None, 
+                  bulk=1, bulk_compute=None, print_out=None, outfile=None, 
+                  ERW=False):
+    ...
+```
+
+The method `solve_generic` takes three mandatory parameters. The first argument `selected_params` is a set or list of parameter names you want to keep track of during the simulation -- these are the ones the algorithm periodically stores and returns when it has finished or outputs them to a file. The parameters `parameters` and `reactions` correspond to the variables obtained through parsing the input file. 
+
+Suppose you have a custom parameter that must be updated during the algorithm's run (e.g., when the reaction rates depend on it). In that case, you can create a
+custom function taking `parameters` and `time` as input, modifying them, and returning
+the modified dictionary. The expected function header is thus `update(parameters, time)`. This function can then be passed into the `solve_generic` method using its `update` parameter. The default value for `update` is `None` - meaning that no custom parameters are updated during the algorithm. If specified, the function passed in `update` is called at the end of each loop to update the parameters.
+
+The parameter `bulk` is used for the approximate solution of large systems, as the selected reaction in the solver is executed `bulk` times. If specified, the corresponding argument `bulk_compute` can be used to recompute the `bulk` during the computation. The method should have the header `bulk_compute(run, time, parameters, bulk)` and based on the current values of `run` (number of iterations of the algorithm), `time` (current simulation time), `parameters` (dictionary of current parameter values) and `bulk` (the current bulk size) it is expected to return the new bulk size. Note that it is not called at each iteration for efficiency reasons but rather only after `calc_step` loops. The following code shows a possible `bulk_compute` method implementation.
+
+```python
+def exp_bulk_compute(run, time, parameters, bulk):
+    return bulk * 1.01
+```
+
+As the computation might sometimes take a long time, it might be useful for the solver to periodically output the current state of the computation. In that case, it is necessary to pass such informative prints or logging as a method inside the argument `print_out`. It is called once per `calc_step` iterations of the algorithm. The following code specifies the header and shows a possible implementation of the `print_out` method.
+
+```python
+def print_out(run, time, parameters):
+    print(f"run: {run}, time: {time}, EN: {parameters['EN']}, "
+          f"e: {parameters['e']}, Ar: {parameters['Ar']}")
+```
+
+When the argument `outfile` is None, the `solve_generic` function returns the computation results directly as a tuple `times, values`. The first tuple value `times` is a list of time values at the start of each (`calc_step`-th) algorithm iteration. The variable `values` is a dictionary containing lists of parameter values for each parameter from `selected_params` at times specified in the variable
+`times` (in the same order). Otherwise, we can set the argument `outfile` to a filename, in which case the solver opens the file and feeds the output into it directly during the computation. Under these circumstances, the method `solve_generic` does not return anything after finishing.
+
+
+If the argument `ERW` is set to True, the solver will employ the equal reaction weights technique for the simulation. In this context, the parameter `bulk` should be interpreted as a simple multiplicative constant, affecting concentration changes and timestep. Please note that the produced output might become indistinguishable from the deterministic solution under a sufficiently large approximation -- i.e., ERW with high `bulk`.
+
+The method `solve_withN` from `solver.py` was created specifically for validation purposes as a derivative of the `solve_generic` method. It is described in detail in the code. It works similarly to the original method, but it uses the number of electron superparticles instead of the parameter `bulk`. Also, it provides functionality to keep the number of superparticles roughly constant throughout the computation. From a high-level point of view, there are specific `bulk_compute` and `print_out` methods directly incorporated into its code.
+
+
+```python
+def solve_numerical(all_species, parameters, reactions, update=None, 
+                    method=None):
+    ...
+```
+
+The `solve_numerical` is a general method for deterministic numerical solutions. The parameter `all_species` is expected to be a set or a list of all species in the simulation. The arguments `parameters`, `reactions`, and `update` have the same meaning as in the deterministic solver.
+
+You can set the integration method of the underlying differential equations in the parameter `method`. It should be set to a name (as a string) of a method supported by the `scipy.integrate.solve_ivp` function. We recommend using `'Radau'` for complicated problems and `'RK45'` for simpler (non-stiff) problems. The latter is also the default method.
+
+It returns a tuple `times, values` with the same semantics as the deterministic solver. However, in the dictionary values, only the species concentrations are present; it does not compute other parameters.
+
+As the differential equations might become very complicated if we use a sufficiently complex `update` method, in such a case, it might be a good idea to implement your own deterministic solver. The method `solve_numerical_EN` is an example of this approach -- it is intended specifically for systems with reaction rates depending on the reduced electric field $E/N$.
+
+
+### Methods in `plot.py`
+
+In most cases, you would want to specify your own methods for plotting out the results. However, for simple informative purposes, the predefined methods `simple_plot` and `plot_with_EN` can be used. After calling any of them, you can alter `matplotlib.pyplot` settings (e.g., title). When ready, you should call either `matplotlib.pyplot.show` or `matplotlib.pyplot.savefig` to see or save the resulting figure.
+
+
+The function `simple_plot(times, values, selected_species, xlog=False)` can be used for a straightforward simulation report by passing the variables `times` and `values` from the solver of your choice. If the output has been written to a file, you can read it using the `read_outfile(filename)` method from `plot.py`. The argument `selected_species` should be a list of species names to be included in the figure.
+
+The second plotting method `plot_with_EN(times, values, selected_species, ENs=None, xlog=False, ylim=None)` plots the reduced electric field $E/N$ on a second axis. The values can be either passed through the argument `ENs` (in which case it should be a list of the same dimension as `times`) or inside the parameter `values` under the key `'EN'`.
+
+\end{markdown*}
+%\shorthandon{-}

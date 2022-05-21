@@ -1,24 +1,14 @@
-\chapter*{Úvod}
-\addcontentsline{toc}{chapter}{Úvod}
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
 
-Test interpunkce:
-\begin{center}
-  Žluťoučký kůň úpěl ďábelské ódy\\
-  ěščřžýáíéľťňďúů
-\end{center}
+There have been developed very sophisticated and accurate methods for numerically solving the vast majority (if not all) of reaction-rate differential equations. However, these results might not very well model the behavior of real systems, which change particle populations in discrete steps and are subject to inherent fluctuations. Stochastic simulations do not only have a firmer physical basis, but they can also model unstable systems with high variance.~\cite{gillespie77}  
 
-Toto je nějaký úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. 
+In this thesis, we will present a general tool for studying plasma reaction systems using stochastic methods. Given initial concentrations for $N$ species undergoing $M$ chemical reactions, it should be able to predict particle concentrations at any time during the simulation of the system considered. In the case of systems with particle concentrations of very different orders of magnitude, such simulation tends to be unfeasible unless we employ suitable approximations. The resulting tool is able to provide these to the user. However, it is up to his consideration to choose the most fitting approximation with the correct parameters.
 
-Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. Toto je nějaký
-úvodní text, ve kterém se obvykle popisuje struktura práce, cíle a případně i výsledky. 
+The tool is primarily built upon the research of T. Dias \& V. Guerra about low-temperature plasma simulations \cite{tiago20}. Namely, we will employ the Equal Reaction Weights technique (ERW) as a means to simulate the variance of the densities of rare species faithfully. Aside from that, the interface offers to speed up the calculation -- naturally, at the expense of accuracy -- by considering imaginary ``superparticles", standing for several real particles. These techniques extend the famous kinetic Monte Carlo algorithm, sometimes also called by its inventor, derived and described by Gillespie \cite{gillespie76, gillespie77}.
+
+Our goal is to make the stochastic simulator intuitive and easy to use without being too verbose. This is achieved by allowing the user to separate the technical specifications from the code itself, as Python tends to be unnecessarily wordy for that purpose. Custom simulation specification files permit us to adjust them for our objective -- intuitive parameter specification and reaction description. Additionally, it offers to comfortably define the reaction rates using tables, as is a very common practice. 
+
+To validate the algorithm, we will examine the output of the stochastic simulations and compare them to results obtained by the deterministic solution of the set of differential equations describing the system modeled. Because analytical solutions exist for rather simple systems only, we will use numerical computations instead  \cite{gillespie77}. For the validation, we have chosen two well-known argon plasma systems: a simple two-reaction model, and a micro cathode, taking necessary parameters and reaction rates from ZDPlasKin \cite{zdplaskin}, BOLSIG+ solver \cite{bolsig}, and the PHELPS database \cite{TODO}.
+
+In the first chapter, we provide an introduction to the Monte Carlo algorithm and describe its basic principles. Afterward, we discuss its limits and present improvements to make it applicable to larger (and practically interesting) systems. The subsequent chapters verify our tool on two test cases -- a simple yet illustrative two-reaction system and a low-temperature argon plasma model with diffusion losses. The last chapter is to be considered a user manual, covering the simulation tool we have developed. 
